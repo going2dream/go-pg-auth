@@ -1,0 +1,8 @@
+host: ""
+post: ""
+username: ""
+password: ""
+database: ""
+users_table: ""
+login_column: ""
+password_column: ""
