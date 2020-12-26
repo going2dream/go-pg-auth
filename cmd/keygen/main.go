@@ -5,7 +5,7 @@ import (
 	"crypto/rsa"
 	"flag"
 	"fmt"
-	"github.com/ZeroDayDrake/go-pg-auth/internal/pkg/keygen"
+	"github.com/ZeroDayDrake/go-pg-auth/src/keygen"
 	"os"
 )
 

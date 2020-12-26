@@ -1,5 +1,10 @@
 .PHONY: build
-build: build-keygen
+build: build-keygen build-api-http-server
+
+.PHONY: build-api-http-server
+build-api-http-server:
+	rm -rf ./bin/api-server
+	go build -v -o ./bin ./cmd/api-server
 
 .PHONY: build-keygen
 build-keygen:
