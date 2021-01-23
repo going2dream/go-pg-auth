@@ -1,8 +1,0 @@
-level: "debug"
-encoding: "json"
-outputPaths: [ "stdout", "logs/server.log" ]
-errorOutputPaths: [ "stderr" ]
-encoderConfig:
-    messageKey: "message"
-    levelKey: "level"
-    levelEncoder: "lowercase"

@@ -1,9 +1,9 @@
 package main
 
-import "github.com/ZeroDayDrake/go-pg-auth/src/api"
+import "github.com/ZeroDayDrake/go-pg-auth/src/http"
 
 func main() {
-	httpServer := api.NewHttpServer()
+	httpServer := http.NewHttpServer()
 	defer httpServer.Logger.Sync()
 	httpServer.Start()
 }

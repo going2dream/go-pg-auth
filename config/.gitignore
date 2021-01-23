@@ -1,4 +1,3 @@
 *
 !database.yml.example
-!http.yml.example
-!logger.yml.example
+!app.yml.example

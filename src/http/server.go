@@ -1,8 +1,9 @@
-package api
+package http
 
 import (
-	"github.com/ZeroDayDrake/go-pg-auth/src/api/router"
+	"github.com/ZeroDayDrake/go-pg-auth/src/http/router"
 	"github.com/ZeroDayDrake/go-pg-auth/src/logger"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
@@ -10,26 +11,27 @@ import (
 	"log"
 )
 
-type HttpServer struct {
+type Server struct {
 	config *Config
 	Logger *zap.Logger
+	db     *pgxpool.Pool
 }
 
-func (s *HttpServer) Start() {
+func (s *Server) Start() {
 	h := router.BuildRouter().Handler
 	if false {
 		h = fasthttp.CompressHandler(h)
 	}
 
-	s.Logger.Info("Binding to TCP address", zap.String("IP", s.config.IP), zap.String("Port", s.config.Port))
+	s.Logger.Info("Binding to TCP address", zap.String("IP", s.config.BindIP), zap.String("Port", s.config.BindPort))
 
-	if err := fasthttp.ListenAndServe(s.config.IP+":"+s.config.Port, h); err != nil {
+	if err := fasthttp.ListenAndServe(s.config.BindIP+":"+s.config.BindPort, h); err != nil {
 		s.Logger.Fatal("Error in ListenAndServe", zap.Error(err))
 	}
 }
 
-func NewHttpServer() HttpServer {
-	configFile, err := ioutil.ReadFile("config/http.yml")
+func NewHttpServer() Server {
+	configFile, err := ioutil.ReadFile("config/app.yml")
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
@@ -39,8 +41,9 @@ func NewHttpServer() HttpServer {
 		log.Fatalf("error: %v", err)
 	}
 
-	return HttpServer{
+	return Server{
 		config: &config,
 		Logger: logger.New(),
+		db:     NewDBConnection(),
 	}
 }
