@@ -12,14 +12,14 @@ import (
 
 type (
 	DatabaseConfig struct {
-		Host           string
-		Port           string
-		Database       string
-		Username       string
-		Password       string
-		UsersTable     string
-		UsernameColumn string
-		PasswordColumn string
+		DBHost         string `yaml:"db_host"`
+		DBPort         string `yaml:"db_port"`
+		DBUsername     string `yaml:"db_username"`
+		DBPassword     string `yaml:"db_password"`
+		Database       string `yaml:"database"`
+		UsersTable     string `yaml:"users_table"`
+		LoginColumn    string `yaml:"login_column"`
+		PasswordColumn string `yaml:"password_column"`
 	}
 )
 
@@ -34,7 +34,7 @@ func NewDBConnection() *pgxpool.Pool {
 		log.Fatalf("error: %v", err)
 	}
 
-	databaseURL := "postgresql://" + config.Username + ":" + config.Password + "@" + config.Host + ":" + config.Port + "/" + config.Database
+	databaseURL := "postgresql://" + config.DBUsername + ":" + config.DBPassword + "@" + config.DBHost + ":" + config.DBPort + "/" + config.Database
 
 	conn, err := pgxpool.Connect(context.Background(), databaseURL)
 	if err != nil {

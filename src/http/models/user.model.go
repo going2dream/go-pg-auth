@@ -3,10 +3,9 @@ package models
 import "golang.org/x/crypto/bcrypt"
 
 type User struct {
-	ID                int    `json:"id"`
-	Email             string `json:"email"`
-	Password          string `json:"password,omitempty"`
-	EncryptedPassword string `json:"-"`
+	ID       int    `json:"id"`
+	Login    string `json:"login"`
+	Password string `json:"password,omitempty"`
 }
 
 // Validate ...
@@ -14,7 +13,7 @@ type User struct {
 //	return validation.ValidateStruct(
 //		u,
 //		validation.Field(&u.Email, validation.Required, is.Email),
-//		validation.Field(&u.Password, validation.By(requiredIf(u.EncryptedPassword == "")), validation.Length(6, 100)),
+//		validation.Field(&u.DBPassword, validation.By(requiredIf(u.EncryptedPassword == "")), validation.Length(6, 100)),
 //	)
 //}
 
@@ -26,7 +25,7 @@ func (u *User) BeforeCreate() error {
 			return err
 		}
 
-		u.EncryptedPassword = enc
+		u.Password = enc
 	}
 
 	return nil
@@ -39,7 +38,7 @@ func (u *User) Sanitize() {
 
 // ComparePassword ...
 func (u *User) ComparePassword(password string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(u.EncryptedPassword), []byte(password)) == nil
+	return bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)) == nil
 }
 
 func encryptString(s string) (string, error) {
