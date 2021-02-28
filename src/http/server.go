@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/ZeroDayDrake/go-pg-auth/src/http/router"
+	"github.com/ZeroDayDrake/go-pg-auth/src/http/store"
 	SQLStore "github.com/ZeroDayDrake/go-pg-auth/src/http/store/sql"
 	"github.com/ZeroDayDrake/go-pg-auth/src/logger"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -13,19 +13,21 @@ type Server struct {
 	config *AppConfig
 	Logger *zap.Logger
 	db     *pgxpool.Pool
+	store  store.Store
 }
 
 func NewHttpServer() Server {
+	db := NewDBConnection()
 	return Server{
 		config: NewAppConfig(),
 		Logger: logger.New(),
-		db:     NewDBConnection(),
+		db:     db,
+		store:  SQLStore.New(db),
 	}
 }
 
 func (s *Server) Start() {
-	store := SQLStore.New(s.db)
-	h := router.BuildRouter(store).Handler
+	h := BuildRouter(s).Handler
 	//if false {
 	//	h = fasthttp.CompressHandler(h)
 	//}

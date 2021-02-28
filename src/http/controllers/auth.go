@@ -16,7 +16,7 @@ var (
 
 type (
 	Auth struct {
-		store *store.Store
+		Store store.Store
 	}
 
 	LoginReqBody struct {

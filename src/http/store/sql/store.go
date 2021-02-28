@@ -1,16 +1,16 @@
 package sql
 
 import (
-	"database/sql"
 	"github.com/ZeroDayDrake/go-pg-auth/src/http/store"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type Store struct {
-	db             *sql.DB
+	db             *pgxpool.Pool
 	userRepository *UserRepository
 }
 
-func New(db *sql.DB) *Store {
+func New(db *pgxpool.Pool) *Store {
 	return &Store{
 		db: db,
 	}

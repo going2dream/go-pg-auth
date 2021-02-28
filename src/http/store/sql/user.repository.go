@@ -1,10 +1,5 @@
 package sql
 
-import (
-	"database/sql"
-	"github.com/ZeroDayDrake/go-pg-auth/src/http/models"
-)
-
 // UserRepository ...
 type UserRepository struct {
 	store *Store
@@ -26,42 +21,42 @@ type UserRepository struct {
 //	).Scan(&u.ID)
 //}
 
-func (r *UserRepository) Find(id int) (*models.User, error) {
-	u := &models.User{}
-	if err := r.store.db.QueryRow(
-		"SELECT id, email, encrypted_password FROM users WHERE id = $1",
-		id,
-	).Scan(
-		&u.ID,
-		&u.Login,
-		&u.Password,
-	); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
-		}
-
-		return nil, err
-	}
-
-	return u, nil
+func (r *UserRepository) Find(id int) /*(*models.User, error)*/ {
+	//u := &models.User{}
+	//if err := r.store.db.QueryRow(
+	//	"SELECT id, email, encrypted_password FROM users WHERE id = $1",
+	//	id,
+	//).Scan(
+	//	&u.ID,
+	//	&u.Login,
+	//	&u.Password,
+	//); err != nil {
+	//	if err == sql.ErrNoRows {
+	//		return nil, store.ErrRecordNotFound
+	//	}
+	//
+	//	return nil, err
+	//}
+	//
+	//return u, nil
 }
 
-func (r *UserRepository) FindByLogin(email string) (*models.User, error) {
-	u := &models.User{}
-	if err := r.store.db.QueryRow(
-		"SELECT id, email, encrypted_password FROM users WHERE email = $1",
-		email,
-	).Scan(
-		&u.ID,
-		&u.Login,
-		&u.Password,
-	); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
-		}
-
-		return nil, err
-	}
-
-	return u, nil
+func (r *UserRepository) FindByLogin(email string) /*(*models.User, error)*/ {
+	//u := &models.User{}
+	//if err := r.store.db.QueryRow(
+	//	"SELECT id, email, encrypted_password FROM users WHERE email = $1",
+	//	email,
+	//).Scan(
+	//	&u.ID,
+	//	&u.Login,
+	//	&u.Password,
+	//); err != nil {
+	//	if err == sql.ErrNoRows {
+	//		return nil, store.ErrRecordNotFound
+	//	}
+	//
+	//	return nil, err
+	//}
+	//
+	//return u, nil
 }
