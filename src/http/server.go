@@ -4,7 +4,6 @@ import (
 	"github.com/ZeroDayDrake/go-pg-auth/src/http/store"
 	SQLStore "github.com/ZeroDayDrake/go-pg-auth/src/http/store/sql"
 	"github.com/ZeroDayDrake/go-pg-auth/src/logger"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 )
@@ -12,17 +11,16 @@ import (
 type Server struct {
 	config *AppConfig
 	Logger *zap.Logger
-	db     *pgxpool.Pool
 	store  store.Store
 }
 
 func NewHttpServer() Server {
-	db := NewDBConnection()
+	pool := NewPoolInstance()
+
 	return Server{
 		config: NewAppConfig(),
 		Logger: logger.New(),
-		db:     db,
-		store:  SQLStore.New(db),
+		store:  SQLStore.New(pool),
 	}
 }
 

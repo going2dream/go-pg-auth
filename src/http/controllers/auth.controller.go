@@ -2,12 +2,11 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/ZeroDayDrake/go-pg-auth/src/http/store"
 	l "github.com/ZeroDayDrake/go-pg-auth/src/logger"
+	"github.com/jackc/pgx/v4"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -42,9 +41,25 @@ func (c *Auth) Login(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	encryptedPassword, _ := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	user, err := c.Store.User().FindByLogin(body.Login)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			JSONError(ctx, ErrBadCredentials)
+			return
+		}
 
-	fmt.Println(string(encryptedPassword))
+		ctx.Error("Server error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	if !user.ComparePassword(body.Password) {
+		JSONError(ctx, ErrBadCredentials)
+		return
+	}
+
+	//encryptedPassword, _ := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+
+	//fmt.Println(string(encryptedPassword))
 
 	//bcrypt.CompareHashAndPassword([]byte("JDJhJDEwJHpkTm14aHd0a3E1dUlodEpHSk8vMGU1bHdNLmNTMzdrNENiRXc0dlQwSWdLNDBXSjZrT09l"), []byte("hello"))
 

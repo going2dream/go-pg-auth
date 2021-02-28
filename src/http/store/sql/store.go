@@ -6,13 +6,13 @@ import (
 )
 
 type Store struct {
-	db             *pgxpool.Pool
+	pool           *pgxpool.Pool
 	userRepository *UserRepository
 }
 
-func New(db *pgxpool.Pool) *Store {
+func New(pool *pgxpool.Pool) *Store {
 	return &Store{
-		db: db,
+		pool: pool,
 	}
 }
 

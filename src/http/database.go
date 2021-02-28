@@ -23,7 +23,7 @@ type (
 	}
 )
 
-func NewDBConnection() *pgxpool.Pool {
+func NewPoolInstance() *pgxpool.Pool {
 	configFile, err := ioutil.ReadFile("config/database.yml")
 	if err != nil {
 		log.Fatalf("error: %v", err)
@@ -36,12 +36,11 @@ func NewDBConnection() *pgxpool.Pool {
 
 	databaseURL := "postgresql://" + config.DBUsername + ":" + config.DBPassword + "@" + config.DBHost + ":" + config.DBPort + "/" + config.Database
 
-	conn, err := pgxpool.Connect(context.Background(), databaseURL)
+	pool, err := pgxpool.Connect(context.Background(), databaseURL)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
 		os.Exit(1)
 	}
-	defer conn.Close()
 
-	return conn
+	return pool
 }
