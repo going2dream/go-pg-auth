@@ -13,7 +13,7 @@ type UserRepository struct {
 	store *Store
 }
 
-func (r *UserRepository) Find(id int) (*models.User, error) {
+func (r *UserRepository) Find(id string) (*models.User, error) {
 	u := &models.User{}
 
 	connection, err := r.store.pool.Acquire(context.Background())

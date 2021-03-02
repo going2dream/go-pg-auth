@@ -26,9 +26,10 @@ func NewHttpServer() Server {
 
 func (s *Server) Start() {
 	h := BuildRouter(s).Handler
-	//if false {
-	//	h = fasthttp.CompressHandler(h)
-	//}
+
+	if s.config.Environment == "prod" {
+		h = fasthttp.CompressHandler(h)
+	}
 
 	s.Logger.Info("Binding to TCP address", zap.String("IP", s.config.BindIP), zap.String("Port", s.config.BindPort))
 
