@@ -41,7 +41,7 @@ func main() {
 		panic(err)
 	}
 	var publicKeyPEM = &pem.Block{
-		Type:  "PRIVATE KEY",
+		Type:  "PUBLIC KEY",
 		Bytes: publicKeyBytes,
 	}
 
