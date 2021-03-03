@@ -11,8 +11,8 @@ var log = l.New()
 
 type jsonType map[string]interface{}
 
-func JSONError(ctx *fasthttp.RequestCtx, err interface{}) {
-	ctx.SetStatusCode(200)
+func JSONError(ctx *fasthttp.RequestCtx, err interface{}, code int) {
+	ctx.SetStatusCode(code)
 	ctx.SetContentType("application/json")
 	if err := json.NewEncoder(ctx).Encode(err); err != nil {
 		log.Error("JSON error encoder error", zap.String("details", err.Error()))

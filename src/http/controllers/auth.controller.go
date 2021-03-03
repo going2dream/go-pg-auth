@@ -2,16 +2,20 @@ package controllers
 
 import (
 	"encoding/json"
+	"encoding/pem"
+	"fmt"
 	"github.com/ZeroDayDrake/go-pg-auth/src/http/store"
 	l "github.com/ZeroDayDrake/go-pg-auth/src/logger"
 	"github.com/jackc/pgx/v4"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
+	"os"
+	"time"
 )
 
-var (
-	logger = l.New()
-)
+var logger = l.New()
 
 type (
 	Auth struct {
@@ -44,7 +48,7 @@ func (c *Auth) Login(ctx *fasthttp.RequestCtx) {
 	user, err := c.Store.User().FindByLogin(body.Login)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			JSONError(ctx, ErrBadCredentials)
+			JSONError(ctx, ErrBadCredentials, 200)
 			return
 		}
 
@@ -53,9 +57,74 @@ func (c *Auth) Login(ctx *fasthttp.RequestCtx) {
 	}
 
 	if !user.ComparePassword(body.Password) {
-		JSONError(ctx, ErrBadCredentials)
+		JSONError(ctx, ErrBadCredentials, 200)
 		return
 	}
+
+	if _, err := os.Stat("keys/private.pem"); os.IsNotExist(err) {
+		logger.Error("Private key file is not exist")
+		ctx.Error("Server error", 500)
+		return
+	}
+
+	privateKey, err := os.ReadFile("keys/private.pem")
+	if err != nil {
+		logger.Error("Can't open private key file", zap.String("details", err.Error()))
+	}
+
+	// create a Square.jose DSA signer, used to sign the JWT
+	var signerOpts = jose.SignerOptions{}
+	signerOpts.WithType("JWT")
+
+	//var privateKeyInstance ed25519.PrivateKey = privateKey
+	block, _ := pem.Decode(privateKey)
+	if block == nil || block.Type != "PRIVATE KEY" {
+		log.Fatal("failed to decode PEM block containing public key")
+	}
+
+	signer, err := jose.NewSigner(
+		jose.SigningKey{Algorithm: jose.EdDSA, Key: block},
+		&signerOpts,
+	)
+	if err != nil {
+		logger.Error("Failed to create signer", zap.String("details", err.Error()))
+	}
+
+	// create an instance of Builder that uses the dsa signer
+	builder := jwt.Signed(signer)
+
+	// public claims
+	publicClaims := jwt.Claims{
+		Issuer:   "issuer1",
+		Subject:  "subject1",
+		ID:       "id1",
+		Audience: jwt.Audience{"aud1", "aud2"},
+		IssuedAt: jwt.NewNumericDate(time.Date(2017, 1, 1, 0, 0, 0, 0, time.UTC)),
+		Expiry:   jwt.NewNumericDate(time.Date(2017, 1, 1, 0, 15, 0, 0, time.UTC)),
+	}
+	// private claims, as payload is JSON use the generic json patterns
+	privateClaims := map[string]interface{}{
+		"privateClaim1": "val1",
+		"privateClaim2": []string{"val2", "val3"},
+		"anyJSONObjectClaim": map[string]interface{}{
+			"name": "john",
+			"phones": map[string]string{
+				"phone1": "123",
+				"phone2": "456",
+			},
+		},
+	}
+	builder = builder.Claims(publicClaims).Claims(privateClaims)
+
+	// validate all ok, sign with the RSA key, and return a compact JWT
+	rawJWT, err := builder.CompactSerialize()
+	if err != nil {
+		logger.Error("Failed to create JWT", zap.String("details", err.Error()))
+		ctx.Error("Server error", 500)
+		return
+	}
+
+	fmt.Println(rawJWT)
 
 	//encryptedPassword, _ := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 
