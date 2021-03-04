@@ -6,11 +6,11 @@ import (
 	"go.uber.org/zap"
 )
 
-type UserRepository struct {
+type RefreshTokenRepository struct {
 	store *Store
 }
 
-func (r *UserRepository) Find(id string) (*models.User, error) {
+func (r *RefreshTokenRepository) Find(id string) (*models.User, error) {
 	u := &models.User{}
 
 	connection, err := r.store.pool.Acquire(context.Background())
@@ -31,7 +31,7 @@ func (r *UserRepository) Find(id string) (*models.User, error) {
 	return u, nil
 }
 
-func (r *UserRepository) FindByLogin(login string) (*models.User, error) {
+func (r *RefreshTokenRepository) FindByLogin(login string) (*models.User, error) {
 	u := &models.User{}
 
 	connection, err := r.store.pool.Acquire(context.Background())

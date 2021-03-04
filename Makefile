@@ -16,4 +16,4 @@ check-new-keys:
 
 .PHONY: new-keys
 new-keys: check-new-keys build-keygen
-	./bin/keygen -b 2048 --output-dir=./keys
+	./bin/keygen --output-dir=./keys

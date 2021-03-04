@@ -83,6 +83,8 @@ func (c *Auth) Login(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// Create refresh token
+
 	JSONResponse(
 		ctx,
 		map[string]interface{}{
