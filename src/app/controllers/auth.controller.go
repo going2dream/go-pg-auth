@@ -2,7 +2,8 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/ZeroDayDrake/go-pg-auth/src/http/store"
+	"github.com/ZeroDayDrake/go-pg-auth/src/app/http"
+	"github.com/ZeroDayDrake/go-pg-auth/src/app/store"
 	"github.com/ZeroDayDrake/go-pg-auth/src/logger"
 	"github.com/jackc/pgx/v4"
 	"github.com/valyala/fasthttp"
@@ -16,7 +17,8 @@ var log = logger.New()
 
 type (
 	Auth struct {
-		Store store.Store
+		Store  store.Store
+		Server http.Server
 	}
 
 	LoginReqBody struct {

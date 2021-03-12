@@ -2,7 +2,7 @@ package sql
 
 import (
 	"context"
-	"github.com/ZeroDayDrake/go-pg-auth/src/http/models"
+	"github.com/ZeroDayDrake/go-pg-auth/src/app/models"
 	"github.com/ZeroDayDrake/go-pg-auth/src/logger"
 	"go.uber.org/zap"
 )

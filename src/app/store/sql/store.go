@@ -1,7 +1,7 @@
 package sql
 
 import (
-	"github.com/ZeroDayDrake/go-pg-auth/src/http/store"
+	"github.com/ZeroDayDrake/go-pg-auth/src/app/store"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 

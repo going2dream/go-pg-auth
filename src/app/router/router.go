@@ -1,15 +1,16 @@
-package http
+package router
 
 import (
-	"github.com/ZeroDayDrake/go-pg-auth/src/http/controllers"
+	"github.com/ZeroDayDrake/go-pg-auth/src/app/controllers"
+	"github.com/ZeroDayDrake/go-pg-auth/src/app/http"
 	"github.com/fasthttp/router"
 )
 
-func BuildRouter(s *Server) *router.Router {
+func BuildRouter(s *http.Server) *router.Router {
 	r := router.New()
 
 	var AuthController = &controllers.Auth{
-		Store: s.store,
+		Store: s.Store,
 	}
 
 	r.POST("/login", AuthController.Login)

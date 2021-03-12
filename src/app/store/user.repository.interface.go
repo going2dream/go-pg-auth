@@ -1,6 +1,6 @@
 package store
 
-import "github.com/ZeroDayDrake/go-pg-auth/src/http/models"
+import "github.com/ZeroDayDrake/go-pg-auth/src/app/models"
 
 type UserRepository interface {
 	//Create(*models.User) error
