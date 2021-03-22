@@ -1,31 +1,32 @@
 package http
 
 import (
-	"github.com/ZeroDayDrake/go-pg-auth/src/http/store"
-	SQLStore "github.com/ZeroDayDrake/go-pg-auth/src/http/store/sql"
+	"github.com/ZeroDayDrake/go-pg-auth/src/app/router"
+	"github.com/ZeroDayDrake/go-pg-auth/src/app/store"
+	SQLStore "github.com/ZeroDayDrake/go-pg-auth/src/app/store/sql"
 	"github.com/ZeroDayDrake/go-pg-auth/src/logger"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 )
 
 type Server struct {
-	config *AppConfig
+	config *Config
 	Logger *zap.Logger
-	store  store.Store
+	Store  store.Store
 }
 
-func NewHttpServer() Server {
-	pool := NewPoolInstance()
+func NewHTTPServer() Server {
+	pool := store.NewPoolInstance()
 
 	return Server{
 		config: NewAppConfig(),
 		Logger: logger.New(),
-		store:  SQLStore.New(pool),
+		Store:  SQLStore.New(pool),
 	}
 }
 
 func (s *Server) Start() {
-	h := BuildRouter(s).Handler
+	h := router.BuildRouter(s).Handler
 
 	if s.config.Environment == "prod" {
 		h = fasthttp.CompressHandler(h)

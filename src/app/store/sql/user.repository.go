@@ -3,8 +3,11 @@ package sql
 import (
 	"context"
 	"github.com/ZeroDayDrake/go-pg-auth/src/http/models"
+	"github.com/ZeroDayDrake/go-pg-auth/src/logger"
 	"go.uber.org/zap"
 )
+
+var log = logger.New()
 
 type UserRepository struct {
 	store *Store
