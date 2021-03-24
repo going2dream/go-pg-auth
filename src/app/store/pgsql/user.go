@@ -1,13 +1,10 @@
-package sql
+package pgsql
 
 import (
 	"context"
-	"github.com/ZeroDayDrake/go-pg-auth/src/http/models"
-	"github.com/ZeroDayDrake/go-pg-auth/src/logger"
+	"github.com/going2dream/go-pg-auth/src/app/models"
 	"go.uber.org/zap"
 )
-
-var log = logger.New()
 
 type UserRepository struct {
 	store *Store

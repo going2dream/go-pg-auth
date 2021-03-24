@@ -1,18 +1,21 @@
-package sql
+package pgsql
 
 import (
-	"github.com/ZeroDayDrake/go-pg-auth/src/app/store"
+	"github.com/going2dream/go-pg-auth/src/app/logger"
+	"github.com/going2dream/go-pg-auth/src/app/store"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
+
+var log = logger.New()
 
 type Store struct {
 	pool           *pgxpool.Pool
 	userRepository *UserRepository
 }
 
-func New(pool *pgxpool.Pool) *Store {
+func NewStore() *Store {
 	return &Store{
-		pool: pool,
+		pool: NewPoolInstance(),
 	}
 }
 

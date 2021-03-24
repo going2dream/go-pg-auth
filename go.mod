@@ -1,4 +1,4 @@
-module github.com/ZeroDayDrake/go-pg-auth
+module github.com/going2dream/go-pg-auth
 
 go 1.15
 

@@ -1,9 +1,9 @@
-package http
+package app
 
 import (
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 )
 
 type Config struct {
@@ -15,12 +15,12 @@ type Config struct {
 func NewAppConfig() *Config {
 	configFile, err := ioutil.ReadFile("config/app.yml")
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		log.Fatal("Cant read app config file", zap.Error(err))
 	}
 
 	var config Config
 	if err := yaml.Unmarshal(configFile, &config); err != nil {
-		log.Fatalf("error: %v", err)
+		log.Fatal("Cant unmarshal app config file", zap.Error(err))
 	}
 
 	return &config

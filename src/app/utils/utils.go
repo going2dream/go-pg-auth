@@ -1,14 +1,16 @@
-package controllers
+package utils
 
 import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"github.com/going2dream/go-pg-auth/src/app/logger"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 	"os"
 )
 
+var log = logger.New()
 var privateKey interface{}
 
 func JSONResponse(ctx *fasthttp.RequestCtx, response interface{}, code int) {

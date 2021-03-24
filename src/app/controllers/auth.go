@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/ZeroDayDrake/go-pg-auth/src/app/http"
-	"github.com/ZeroDayDrake/go-pg-auth/src/app/store"
-	"github.com/ZeroDayDrake/go-pg-auth/src/logger"
+	"github.com/going2dream/go-pg-auth/src/app/logger"
+	"github.com/going2dream/go-pg-auth/src/app/store"
+	"github.com/going2dream/go-pg-auth/src/app/utils"
 	"github.com/jackc/pgx/v4"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
@@ -17,8 +17,7 @@ var log = logger.New()
 
 type (
 	Auth struct {
-		Store  store.Store
-		Server http.Server
+		Store store.Store
 	}
 
 	LoginReqBody struct {
@@ -46,7 +45,7 @@ func (c *Auth) Login(ctx *fasthttp.RequestCtx) {
 	user, err := c.Store.User().FindByLogin(body.Login)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			JSONResponse(ctx, ErrBadCredentials, 200)
+			utils.JSONResponse(ctx, ErrBadCredentials, 200)
 			return
 		}
 
@@ -55,7 +54,7 @@ func (c *Auth) Login(ctx *fasthttp.RequestCtx) {
 	}
 
 	if !user.ComparePassword(body.Password) {
-		JSONResponse(ctx, ErrBadCredentials, 200)
+		utils.JSONResponse(ctx, ErrBadCredentials, 200)
 		return
 	}
 
@@ -64,7 +63,7 @@ func (c *Auth) Login(ctx *fasthttp.RequestCtx) {
 	signerOpts.WithType("JWT")
 
 	signer, err := jose.NewSigner(
-		jose.SigningKey{Algorithm: jose.EdDSA, Key: GetPrivateKey()},
+		jose.SigningKey{Algorithm: jose.EdDSA, Key: utils.GetPrivateKey()},
 		&signerOpts,
 	)
 	if err != nil {
@@ -87,7 +86,7 @@ func (c *Auth) Login(ctx *fasthttp.RequestCtx) {
 
 	// Create refresh token
 
-	JSONResponse(
+	utils.JSONResponse(
 		ctx,
 		map[string]interface{}{
 			"token":   rawJWT,

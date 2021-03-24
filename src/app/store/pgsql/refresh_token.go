@@ -1,8 +1,8 @@
-package sql
+package pgsql
 
 import (
 	"context"
-	"github.com/ZeroDayDrake/go-pg-auth/src/http/models"
+	"github.com/going2dream/go-pg-auth/src/app/models"
 	"go.uber.org/zap"
 )
 

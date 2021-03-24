@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/ZeroDayDrake/go-pg-auth/src/app/http"
+	"github.com/going2dream/go-pg-auth/src/app"
+	"github.com/going2dream/go-pg-auth/src/app/store/pgsql"
 )
 
 func main() {
-	httpServer := http.New()
-	defer httpServer.Logger.Sync()
-	httpServer.Start()
+	a := app.New()
+	a.SetStore(pgsql.NewStore())
+
+	a.Start()
 }

@@ -1,13 +1,11 @@
-package store
+package pgsql
 
 import (
 	"context"
-	"fmt"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
-	"os"
 )
 
 type (
@@ -26,20 +24,19 @@ type (
 func NewPoolInstance() *pgxpool.Pool {
 	configFile, err := ioutil.ReadFile("config/database.yml")
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		log.Fatal("Cant read database config", zap.String("details", err.Error()))
 	}
 
 	var config DatabaseConfig
 	if err := yaml.Unmarshal(configFile, &config); err != nil {
-		log.Fatalf("error: %v", err)
+		log.Fatal("Cant unmarshal database config", zap.String("details", err.Error()))
 	}
 
 	databaseURL := "postgresql://" + config.DBUsername + ":" + config.DBPassword + "@" + config.DBHost + ":" + config.DBPort + "/" + config.Database
 
 	pool, err := pgxpool.Connect(context.Background(), databaseURL)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
+		log.Fatal("Unable to connect to PostgreSQL database", zap.String("details", err.Error()))
 	}
 
 	return pool
