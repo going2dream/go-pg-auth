@@ -1,4 +1,6 @@
 environment: "dev" # dev/prod
+domain: "localhost" # eg: site.test
+auth_uri_path: "" # optional, needed for refresh token cookie uri path, eg: "/auth"
 bind_ip: "127.0.0.1"
 bind_port: "8080"
 token_lifetime: "900s"
