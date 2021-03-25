@@ -11,5 +11,5 @@ type UserRepository interface {
 type RefreshTokenRepository interface {
 	Create(*models.RefreshToken) error
 	Find(string) (*models.RefreshToken, error)
-	Delete(*models.RefreshToken) error
+	Delete(string) error
 }

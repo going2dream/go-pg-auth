@@ -5,4 +5,4 @@ db_password: ""
 database: "project_db"
 users_table: "users"
 login_column: "login"
-password_column: "password"
+password_column: "password" #password type must be bcrypt

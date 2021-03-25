@@ -10,8 +10,8 @@ type RefreshTokenRepository struct {
 	store *Store
 }
 
-func (r *RefreshTokenRepository) Find(id string) (*models.User, error) {
-	u := &models.User{}
+func (r *RefreshTokenRepository) Find(id string) (*models.RefreshToken, error) {
+	refreshToken := &models.RefreshToken{}
 
 	connection, err := r.store.pool.Acquire(context.Background())
 	if err != nil {
@@ -22,32 +22,64 @@ func (r *RefreshTokenRepository) Find(id string) (*models.User, error) {
 
 	if err := connection.QueryRow(
 		context.Background(),
-		"SELECT id, login, password FROM users WHERE id = $1",
+		"SELECT id, user_id, ua, fingerprint, ip, expires_in, created_at, updated_at FROM refresh_tokens WHERE id = $1",
 		id,
-	).Scan(&u.ID, &u.Login, &u.Password); err != nil {
+	).Scan(
+		&refreshToken.ID,
+		&refreshToken.UserID,
+		&refreshToken.UA,
+		&refreshToken.Fingerprint,
+		&refreshToken.IP,
+		&refreshToken.ExpiresIn,
+		&refreshToken.CreatedAt,
+		&refreshToken.UpdatedAt,
+	); err != nil {
 		return nil, err
 	}
 
-	return u, nil
+	return refreshToken, nil
 }
 
-func (r *RefreshTokenRepository) FindByLogin(login string) (*models.User, error) {
-	u := &models.User{}
-
+func (r *RefreshTokenRepository) Create(rt *models.RefreshToken) error {
 	connection, err := r.store.pool.Acquire(context.Background())
 	if err != nil {
 		log.Info("Unable to acquire a database connection", zap.String("details", err.Error()))
-		return nil, err
+		return err
 	}
 	defer connection.Release()
 
 	if err := connection.QueryRow(
 		context.Background(),
-		"SELECT id, login, password FROM users WHERE login = $1",
-		login,
-	).Scan(&u.ID, &u.Login, &u.Password); err != nil {
-		return nil, err
+		"INSERT INTO refresh_tokens (user_id, ua, fingerprint, ip, expires_in, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+		rt.UserID,
+		rt.UA,
+		rt.Fingerprint,
+		rt.IP,
+		rt.ExpiresIn,
+		rt.CreatedAt,
+		rt.UpdatedAt,
+	).Scan(&rt.ID); err != nil {
+		return err
 	}
 
-	return u, nil
+	return nil
+}
+
+func (r *RefreshTokenRepository) Delete(id string) error {
+	connection, err := r.store.pool.Acquire(context.Background())
+	if err != nil {
+		log.Info("Unable to acquire a database connection", zap.String("details", err.Error()))
+		return err
+	}
+	defer connection.Release()
+
+	if _, err := connection.Query(
+		context.Background(),
+		"DELETE FROM refresh_tokens WHERE id = $1",
+		id,
+	); err != nil {
+		return err
+	}
+
+	return nil
 }

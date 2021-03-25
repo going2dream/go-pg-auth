@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"github.com/going2dream/go-pg-auth/src/app/logger"
+	"github.com/going2dream/go-pg-auth/src/app/models"
 	"github.com/going2dream/go-pg-auth/src/app/store"
 	"github.com/going2dream/go-pg-auth/src/app/utils"
 	"github.com/jackc/pgx/v4"
@@ -21,8 +22,9 @@ type (
 	}
 
 	LoginReqBody struct {
-		Login    string `json:"login"`
-		Password string `json:"password"`
+		Login       string `json:"login"`
+		Password    string `json:"password"`
+		Fingerprint string `json:"fingerprint"`
 	}
 )
 
@@ -35,10 +37,6 @@ func (c *Auth) Login(ctx *fasthttp.RequestCtx) {
 		)
 
 		ctx.Error("Invalid data", fasthttp.StatusBadRequest)
-		return
-	}
-
-	if !c.usernameValidate(body.Login, ctx) {
 		return
 	}
 
@@ -70,11 +68,13 @@ func (c *Auth) Login(ctx *fasthttp.RequestCtx) {
 		log.Error("Failed to create signer", zap.String("details", err.Error()))
 	}
 
+	appConfig := utils.GetAppConfig()
+
 	// create an instance of Builder that uses the dsa signer
 	builder := jwt.Signed(signer)
 	builder = builder.Claims(jwt.Claims{
 		Subject: user.ID,
-		Expiry:  jwt.NewNumericDate(time.Now().Add(10 * time.Minute)),
+		Expiry:  jwt.NewNumericDate(time.Now().Add(appConfig.JWTTokenLifetime)),
 	})
 
 	rawJWT, err := builder.CompactSerialize()
@@ -85,39 +85,251 @@ func (c *Auth) Login(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Create refresh token
+	rt := &models.RefreshToken{
+		UserID:      user.ID,
+		UA:          string(ctx.Request.Header.UserAgent()),
+		Fingerprint: body.Fingerprint,
+		IP:          utils.ClientIP(ctx),
+		ExpiresIn:   time.Now().Add(appConfig.RefreshTokenLifetime).Unix(),
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+	}
+
+	if err := rt.Validate(); err != nil {
+		log.Error("Validation error", zap.Error(err))
+		ctx.Error("Data is invalid", 400)
+		return
+	}
+
+	if err := c.Store.RefreshToken().Create(rt); err != nil {
+		log.Error("Refresh token creation error", zap.Error(err))
+		ctx.Error("Server error", 500)
+		return
+	}
+
+	rtCookie := fasthttp.Cookie{}
+	rtCookie.SetKey("refreshToken")
+	rtCookie.SetValue(rt.ID)
+	rtCookie.SetExpire(time.Unix(rt.ExpiresIn, 0))
+	rtCookie.SetDomain("." + appConfig.Domain)
+	rtCookie.SetPath(appConfig.AuthURIPath)
+	rtCookie.SetHTTPOnly(true)
+
+	ctx.Response.Header.SetCookie(&rtCookie)
 
 	utils.JSONResponse(
 		ctx,
 		map[string]interface{}{
-			"token":   rawJWT,
-			"refresh": "hbhnjnknkkj",
+			"token": rawJWT,
 		},
 		fasthttp.StatusOK,
 	)
 }
 
-func (c *Auth) usernameValidate(username string, ctx *fasthttp.RequestCtx) bool {
-	if len(username) < 3 {
-		ctx.Error("DBUsername length must be greater than 3 symbols", fasthttp.StatusUnprocessableEntity)
-		return false
+func (c *Auth) RefreshTokens(ctx *fasthttp.RequestCtx) {
+	refreshTokenID := string(ctx.Request.Header.Cookie("refreshToken"))
+
+	if refreshTokenID == "" {
+		utils.JSONResponse(ctx, ErrInvalidRefreshToken, 200)
+		return
 	}
 
-	if len(username) > 255 {
-		ctx.Error("DBUsername length must be less than 255 symbols", fasthttp.StatusUnprocessableEntity)
-		return false
+	requestBody := struct {
+		Fingerprint string `json:"fingerprint"`
+	}{}
+
+	if err := json.Unmarshal(ctx.PostBody(), &requestBody); err != nil {
+		log.Error(
+			"Cant unmarshal refresh tokens request requestBody",
+			zap.Error(err),
+			zap.ByteString("requestBody", ctx.PostBody()),
+		)
+
+		ctx.Error("Invalid data", fasthttp.StatusBadRequest)
+		return
 	}
 
-	return true
-}
+	refreshToken, err := c.Store.RefreshToken().Find(refreshTokenID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			utils.JSONResponse(ctx, ErrRefreshTokenNotFound, 200)
+			ctx.Response.Header.DelCookie("refreshToken")
+			return
+		}
 
-func (c *Auth) RefreshToken(ctx *fasthttp.RequestCtx) {
-	//ctx.SetStatusCode(fasthttp.StatusMovedPermanently)
-	//ctx.Response.Header.Set("Location", "http://www.example.com/")
-	ctx.WriteString("123")
+		log.Error(
+			"Cant receive refresh token from database",
+			zap.Error(err),
+		)
+
+		ctx.Error("Server error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	if err := c.Store.RefreshToken().Delete(refreshToken.ID); err != nil {
+		log.Error(
+			"Cant delete refresh token from database",
+			zap.Error(err),
+		)
+
+		ctx.Response.Header.DelCookie("refreshToken")
+		ctx.Error("Server error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	if !refreshToken.CompareFingerprint(requestBody.Fingerprint) {
+		utils.JSONResponse(ctx, ErrInvalidRefreshSession, 200)
+		ctx.Response.Header.DelCookie("refreshToken")
+
+		log.Warn(
+			"Unauthorized renewal of tokens",
+			zap.String("tokenFingerprint", refreshToken.Fingerprint),
+			zap.String("requestFingerprint", requestBody.Fingerprint),
+			zap.String("requestIP", utils.ClientIP(ctx)),
+		)
+
+		return
+	}
+
+	if refreshToken.IsExpired() {
+		utils.JSONResponse(ctx, ErrRefreshTokenExpired, 200)
+		ctx.Response.Header.DelCookie("refreshToken")
+		return
+	}
+
+	var signerOpts = jose.SignerOptions{}
+	signerOpts.WithType("JWT")
+
+	signer, err := jose.NewSigner(
+		jose.SigningKey{Algorithm: jose.EdDSA, Key: utils.GetPrivateKey()},
+		&signerOpts,
+	)
+	if err != nil {
+		log.Error("Failed to create signer", zap.String("details", err.Error()))
+	}
+
+	appConfig := utils.GetAppConfig()
+
+	// create an instance of Builder that uses the dsa signer
+	builder := jwt.Signed(signer)
+	builder = builder.Claims(jwt.Claims{
+		Subject: refreshToken.UserID,
+		Expiry:  jwt.NewNumericDate(time.Now().Add(appConfig.JWTTokenLifetime)),
+	})
+
+	rawJWT, err := builder.CompactSerialize()
+	if err != nil {
+		log.Error("Failed to create JWT", zap.String("details", err.Error()))
+		ctx.Error("Server error", 500)
+		return
+	}
+
+	// Recreate refresh token
+	rt := &models.RefreshToken{
+		UserID:      refreshToken.UserID,
+		UA:          string(ctx.Request.Header.UserAgent()),
+		Fingerprint: refreshToken.Fingerprint,
+		IP:          utils.ClientIP(ctx),
+		ExpiresIn:   time.Now().Add(appConfig.RefreshTokenLifetime).Unix(),
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+	}
+
+	if err := rt.Validate(); err != nil {
+		log.Error("Validation error", zap.Error(err))
+		ctx.Error("Server error", 500)
+		return
+	}
+
+	if err := c.Store.RefreshToken().Create(rt); err != nil {
+		log.Error("Refresh token creation error", zap.Error(err))
+		ctx.Error("Server error", 500)
+		return
+	}
+
+	rtCookie := fasthttp.Cookie{}
+	rtCookie.SetKey("refreshToken")
+	rtCookie.SetValue(rt.ID)
+	rtCookie.SetExpire(time.Unix(rt.ExpiresIn, 0))
+	rtCookie.SetDomain("." + appConfig.Domain)
+	rtCookie.SetPath(appConfig.AuthURIPath)
+	rtCookie.SetHTTPOnly(true)
+
+	ctx.Response.Header.SetCookie(&rtCookie)
+
+	utils.JSONResponse(
+		ctx,
+		map[string]interface{}{
+			"token": rawJWT,
+		},
+		fasthttp.StatusOK,
+	)
 }
 
 func (c *Auth) Logout(ctx *fasthttp.RequestCtx) {
-	//ctx.SetStatusCode(fasthttp.StatusMovedPermanently)
-	//ctx.Response.Header.Set("Location", "http://www.example.com/")
-	ctx.WriteString("123")
+	refreshTokenID := string(ctx.Request.Header.Cookie("refreshToken"))
+
+	if refreshTokenID == "" {
+		utils.JSONResponse(ctx, ErrInvalidRefreshToken, 200)
+		return
+	}
+
+	requestBody := struct {
+		Fingerprint string `json:"fingerprint"`
+	}{}
+
+	if err := json.Unmarshal(ctx.PostBody(), &requestBody); err != nil {
+		log.Error(
+			"Cant unmarshal refresh tokens request requestBody",
+			zap.Error(err),
+			zap.ByteString("requestBody", ctx.PostBody()),
+		)
+
+		ctx.Error("Invalid data", fasthttp.StatusBadRequest)
+		return
+	}
+
+	refreshToken, err := c.Store.RefreshToken().Find(refreshTokenID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			utils.JSONResponse(ctx, ErrRefreshTokenNotFound, 200)
+			ctx.Response.Header.DelCookie("refreshToken")
+			return
+		}
+
+		log.Error(
+			"Cant receive refresh token from database",
+			zap.Error(err),
+		)
+
+		ctx.Error("Server error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	if !refreshToken.CompareFingerprint(requestBody.Fingerprint) {
+		utils.JSONResponse(ctx, ErrInvalidRefreshSession, 200)
+		ctx.Response.Header.DelCookie("refreshToken")
+
+		log.Warn(
+			"Unauthorized logout",
+			zap.String("tokenFingerprint", refreshToken.Fingerprint),
+			zap.String("requestFingerprint", requestBody.Fingerprint),
+			zap.String("requestIP", utils.ClientIP(ctx)),
+		)
+
+		return
+	}
+
+	if err := c.Store.RefreshToken().Delete(refreshTokenID); err != nil {
+		log.Error(
+			"Cant delete refresh token from database",
+			zap.Error(err),
+		)
+
+		ctx.Error("Server error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	ctx.Response.Header.DelCookie("refreshToken")
+	ctx.SetStatusCode(200)
 }

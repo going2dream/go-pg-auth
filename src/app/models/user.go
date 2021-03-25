@@ -1,6 +1,9 @@
 package models
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"github.com/valyala/fasthttp"
+	"golang.org/x/crypto/bcrypt"
+)
 
 type User struct {
 	ID       string `json:"id"`
@@ -39,6 +42,20 @@ func (u *User) Sanitize() {
 // ComparePassword ...
 func (u *User) ComparePassword(password string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)) == nil
+}
+
+func (u *User) UsernameValidate(username string, ctx *fasthttp.RequestCtx) bool {
+	if len(username) < 3 {
+		ctx.Error("DBUsername length must be greater than 3 symbols", fasthttp.StatusUnprocessableEntity)
+		return false
+	}
+
+	if len(username) > 255 {
+		ctx.Error("DBUsername length must be less than 255 symbols", fasthttp.StatusUnprocessableEntity)
+		return false
+	}
+
+	return true
 }
 
 func encryptString(s string) (string, error) {

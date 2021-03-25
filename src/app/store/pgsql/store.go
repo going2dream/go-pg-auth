@@ -9,8 +9,9 @@ import (
 var log = logger.New()
 
 type Store struct {
-	pool           *pgxpool.Pool
-	userRepository *UserRepository
+	pool                   *pgxpool.Pool
+	userRepository         *UserRepository
+	refreshTokenRepository *RefreshTokenRepository
 }
 
 func NewStore() *Store {
@@ -29,4 +30,16 @@ func (s *Store) User() store.UserRepository {
 	}
 
 	return s.userRepository
+}
+
+func (s *Store) RefreshToken() store.RefreshTokenRepository {
+	if s.refreshTokenRepository != nil {
+		return s.refreshTokenRepository
+	}
+
+	s.refreshTokenRepository = &RefreshTokenRepository{
+		store: s,
+	}
+
+	return s.refreshTokenRepository
 }

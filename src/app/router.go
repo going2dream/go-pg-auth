@@ -14,7 +14,7 @@ func BuildRouter(store store.Store) *router.Router {
 	}
 
 	r.POST("/login", AuthController.Login)
-	r.POST("/refresh.token", AuthController.RefreshToken)
+	r.POST("/refresh.tokens", AuthController.RefreshTokens)
 	r.POST("/logout", AuthController.Logout)
 
 	return r

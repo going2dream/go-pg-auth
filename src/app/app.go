@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/going2dream/go-pg-auth/src/app/logger"
 	"github.com/going2dream/go-pg-auth/src/app/store"
+	"github.com/going2dream/go-pg-auth/src/app/utils"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 )
@@ -10,13 +11,13 @@ import (
 var log = logger.New()
 
 type app struct {
-	config *Config
+	config *utils.AppConfig
 	Store  store.Store
 }
 
 func New() *app {
 	return &app{
-		config: NewAppConfig(),
+		config: utils.GetAppConfig(),
 	}
 }
 
